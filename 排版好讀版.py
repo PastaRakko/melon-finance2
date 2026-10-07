@@ -50,9 +50,9 @@ if 'members_df' not in st.session_state:
 
 if 'trans_df' not in st.session_state:
     df_t = df_trans.copy()
-    # 清理收支明細 (去除 $ 與逗號，並將日期標準化)
-    if '$' in df_t.columns:
-        df_t['$'] = pd.to_numeric(df_t['$'].astype(str).replace(r'[\$,]', '', regex=True), errors='coerce').fillna(0)
+    # 清理收支明細 (將文字轉為數字，並去除資料內的 $ 與逗號符號)
+    if '金額' in df_t.columns:
+        df_t['金額'] = pd.to_numeric(df_t['金額'].astype(str).replace(r'[\$,]', '', regex=True), errors='coerce').fillna(0)
     if '日期' in df_t.columns:
         df_t['日期'] = pd.to_datetime(df_t['日期'], errors='coerce')
     st.session_state.trans_df = df_t
@@ -88,8 +88,8 @@ with st.sidebar:
                 # 1. 產生最新的 Excel 檔案內容到記憶體
                 output = io.BytesIO()
                 with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    st.session_state.trans_df.to_excel(writer, sheet_name='每周收支', index=False)
-                    st.session_state.members_df.to_excel(writer, sheet_name='季繳追蹤', index=False)
+                    st.session_state.trans_df.to_excel(writer, sheet_name='收支明細', index=False)
+                    st.session_state.members_df.to_excel(writer, sheet_name='季繳名單', index=False)
                 excel_data = output.getvalue()
                 
                 # 2. 呼叫 Secrets 裡面的鑰匙連線至 GitHub
@@ -119,14 +119,14 @@ tab1, tab2, tab3, tab4 = st.tabs(["💰收支概況", "📊記帳與管理", "�
 with tab1:
     st.subheader("💰總財務概況")
     
-    if '類別' in current_trans.columns and '$' in current_trans.columns:
-        total_income = current_trans[current_trans['類別'] == '收入']['$'].sum()
-        total_expense = current_trans[current_trans['類別'] == '支出']['$'].sum()
+    if '類別' in current_trans.columns and '金額' in current_trans.columns:
+        total_income = current_trans[current_trans['類別'] == '收入']['金額'].sum()
+        total_expense = current_trans[current_trans['類別'] == '支出']['金額'].sum()
         net_balance = total_income - total_expense
 
         # 安全挪用款
         if '項目' in current_trans.columns:
-            venue_expenses = current_trans[(current_trans['類別'] == '支出') & (current_trans['項目'] == '場地費')]['$']
+            venue_expenses = current_trans[(current_trans['類別'] == '支出') & (current_trans['項目'] == '場地費')]['金額']
             weekly_venue_fee = venue_expenses.mode()[0] if not venue_expenses.empty else 760
         else:
             weekly_venue_fee = 380 * 2
@@ -149,11 +149,11 @@ with tab1:
     
     st.subheader("📊收支圖表分析")
     
-    if '類別' in current_trans.columns and '$' in current_trans.columns and '日期' in current_trans.columns:
+    if '類別' in current_trans.columns and '金額' in current_trans.columns and '日期' in current_trans.columns:
         col1, col2 = st.columns(2)
         with col1:
-            summary = current_trans.groupby('類別')['$'].sum().reset_index()
-            fig_pie = px.pie(summary, values='$', names='類別', title="總收入 vs 總支出",
+            summary = current_trans.groupby('類別')['金額'].sum().reset_index()
+            fig_pie = px.pie(summary, values='金額', names='類別', title="總收入 vs 總支出",
                              color='類別', color_discrete_map={'收入':'#28a745', '支出':'#dc3545'})
             st.plotly_chart(fig_pie, use_container_width=True)
             
@@ -161,9 +161,9 @@ with tab1:
             plot_df = current_trans.dropna(subset=['日期']).copy()
             plot_df['月份'] = plot_df['日期'].dt.strftime('%Y-%m')
 
-            monthly_summary = plot_df.groupby(['月份', '類別'])['$'].sum().reset_index()
+            monthly_summary = plot_df.groupby(['月份', '類別'])['金額'].sum().reset_index()
             
-            fig_bar = px.bar(monthly_summary, x='月份', y='$', color='類別', barmode='group', title="每月收支變化",
+            fig_bar = px.bar(monthly_summary, x='月份', y='金額', color='類別', barmode='group', title="每月收支變化",
                              color_discrete_map={'收入':'#28a745', '支出':'#dc3545'})
             # 確保 X 軸顯示為純文字類別 (解決時間格式跑版)
             fig_bar.update_layout(xaxis_type='category')
@@ -196,7 +196,7 @@ with tab2:
                         "日期": pd.to_datetime(t_date),
                         "類別": t_type,
                         "項目": t_item,
-                        "$": t_amount,
+                        "金額": t_amount,
                         "經手人": t_handler,
                         "備註": t_note
                     }])
@@ -224,7 +224,8 @@ with tab2:
             
         # 插入刪除打勾欄位
         display_df.insert(0, "🗑️刪除", False)
-
+        
+        # ✨ 動態抓取第一欄名稱，完全避開 Emoji 字串辨識問題
         del_col = display_df.columns[0]
             
         edited_trans = st.data_editor(
@@ -234,7 +235,7 @@ with tab2:
             hide_index=True,
             key=f"trans_editor_{st.session_state.trans_key_version}",
             column_config={
-                "🗑️刪除": st.column_config.CheckboxColumn("刪除", default=False, width="small"),
+                del_col: st.column_config.CheckboxColumn("刪除", default=False, width="small"),
                 "日期": st.column_config.DateColumn("日期", format="YYYY-MM-DD"),
                 "類別": st.column_config.SelectboxColumn("類別", options=["收入", "支出"], required=True),
                 "項目": st.column_config.SelectboxColumn("項目", options=item_options),
@@ -243,12 +244,13 @@ with tab2:
         )   
         
         # 處理打勾刪除與雙擊修改邏輯
-        if edited_trans["🗑️刪除"].any():
+        if edited_trans[del_col].any():
             st.warning("⚠️發現已勾選的項目，確定要刪除嗎？")
             col_btn1, col_btn2 = st.columns(2)
             with col_btn1:
                 if st.button("❎確認刪除", key="confirm_del_trans", use_container_width=True):
-                    st.session_state.trans_df = edited_trans[~edited_trans["🗑️刪除"]].iloc[:, 1:].reset_index(drop=True)
+                    # 完全不使用字串，直接過濾掉打勾的資料，並用 .iloc[:, 1:] 排除打勾欄
+                    st.session_state.trans_df = edited_trans[~edited_trans[del_col]].iloc[:, 1:].reset_index(drop=True)
                     st.session_state.trans_key_version += 1 
                     st.rerun()
 
@@ -257,6 +259,7 @@ with tab2:
                     st.session_state.trans_key_version += 1
                     st.rerun()
         else:
+            # 用 .iloc[:, 1:] 比對，不依賴字串名稱
             orig_check = display_df.iloc[:, 1:]
             edit_check = edited_trans.iloc[:, 1:]
             if not edit_check.equals(orig_check):
@@ -323,7 +326,8 @@ with tab3:
           
         # 插入刪除打勾欄位
         display_df.insert(0, "🗑️刪除", False)
-
+        
+        # ✨ 動態抓取第一欄名稱，完全避開 Emoji 字串辨識問題
         del_col_mem = display_df.columns[0]
 
         def highlight_zero(row):
@@ -338,7 +342,7 @@ with tab3:
             hide_index=True,
             key=f"members_editor_{st.session_state.members_key_version}",
             column_config={
-                "🗑️刪除": st.column_config.CheckboxColumn("刪除", default=False, width="small"),
+                del_col_mem: st.column_config.CheckboxColumn("刪除", default=False, width="small"),
                 "繳費日期": st.column_config.DateColumn("繳費日期", format="YYYY-MM-DD"),
                 "季繳開始日期": st.column_config.DateColumn("季繳開始日期", format="YYYY-MM-DD"),
                 "剩餘次數": st.column_config.NumberColumn("剩餘次數", format="%d")
@@ -346,12 +350,13 @@ with tab3:
         )
 
         # 處理打勾刪除與雙擊修改邏輯
-        if edited_members["🗑️刪除"].any():
+        if edited_members[del_col_mem].any():
             st.warning("⚠️發現已勾選的項目，確定要刪除嗎？")
             col_btn1, col_btn2 = st.columns(2)
             with col_btn1:
                 if st.button("❎確認刪除", key="confirm_del_mem", use_container_width=True):
-                    st.session_state.members_df = edited_members[~edited_members["🗑️刪除"]][['姓名', '繳費日期', '季繳開始日期', '剩餘次數']].reset_index(drop=True)
+                    # 篩選掉打勾的列，並只保留需要的四個欄位
+                    st.session_state.members_df = edited_members[~edited_members[del_col_mem]][['姓名', '繳費日期', '季繳開始日期', '剩餘次數']].reset_index(drop=True)
                     st.session_state.members_key_version += 1
                     st.rerun()
             with col_btn2:
@@ -359,6 +364,7 @@ with tab3:
                     st.session_state.members_key_version += 1
                     st.rerun()
         else:
+            # 直接選取特定欄位比對，不依賴字串名稱來 drop
             orig_check = display_df[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']]
             edit_check = edited_members[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']]
             if not edit_check.equals(orig_check):
