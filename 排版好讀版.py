@@ -81,17 +81,7 @@ if '經手人' in current_trans.columns:
 with st.sidebar:
     st.header("💾雲端同步存檔")
     st.info("💡完成資料修改後，請務必點擊下方按鈕以更新")
-
-    # ✨ 加入重新讀取按鈕
-    if st.button("🔄重新讀取最新資料", use_container_width=True):
-        load_excel.clear() 
-        if 'trans_df' in st.session_state:
-            del st.session_state['trans_df']
-        if 'members_df' in st.session_state:
-            del st.session_state['members_df']
-        st.success("✅已抓取最新資料！")
-        st.rerun()
-    
+   
     if st.button("👆確認更新並存檔", use_container_width=True):
         with st.spinner("⌛正在上傳資料中，請稍候..."):
             try:
@@ -116,6 +106,16 @@ with st.sidebar:
                 st.success("✅存檔成功！資料已完成同步")
             except Exception as e:
                 st.error(f"❌存檔失敗：請檢查 Secrets 設定或 Token 權限。錯誤細節：{e}")
+
+    #重新讀取按鈕
+    if st.button("🔄重新讀取最新資料", use_container_width=True):
+        load_excel.clear() 
+        if 'trans_df' in st.session_state:
+            del st.session_state['trans_df']
+        if 'members_df' in st.session_state:
+            del st.session_state['members_df']
+        st.success("✅已抓取最新資料！")
+        st.rerun()
 
 # ==========================================
 # 3. 建立網頁分頁
