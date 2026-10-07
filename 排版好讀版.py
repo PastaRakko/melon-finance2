@@ -81,6 +81,16 @@ if '經手人' in current_trans.columns:
 with st.sidebar:
     st.header("💾雲端同步存檔")
     st.info("💡完成資料修改後，請務必點擊下方按鈕以更新")
+
+    # ✨ 加入重新讀取按鈕
+    if st.button("🔄重新讀取最新資料", use_container_width=True):
+        load_excel.clear() 
+        if 'trans_df' in st.session_state:
+            del st.session_state['trans_df']
+        if 'members_df' in st.session_state:
+            del st.session_state['members_df']
+        st.success("✅已抓取最新資料！")
+        st.rerun()
     
     if st.button("👆確認更新並存檔", use_container_width=True):
         with st.spinner("⌛正在上傳資料中，請稍候..."):
