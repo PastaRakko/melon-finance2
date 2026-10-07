@@ -207,6 +207,24 @@ with tab2:
     # 右側：收支總表與編輯
     with col_right:
         st.subheader("📝收支總表")
+        # 將標題列切分為左右，讓按鈕靠右對齊
+        col_title, col_dl = st.columns([7, 3])
+        with col_title:
+            st.subheader("📝收支總表")
+        with col_dl:
+            # 準備 Excel 檔案
+            dl_output = io.BytesIO()
+            with pd.ExcelWriter(dl_output, engine='openpyxl') as writer:
+                st.session_state.trans_df.to_excel(writer, sheet_name='收支明細', index=False)
+                st.session_state.members_df.to_excel(writer, sheet_name='季繳名單', index=False)
+            
+            st.download_button(
+                label="📥下載 Excel",
+                data=dl_output.getvalue(),
+                file_name=f"哈蜜瓜收支表_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
 
         # 初始化動態 Key (用於取消刪除時強制刷新前端畫面)
         if "trans_key_version" not in st.session_state:
@@ -313,6 +331,25 @@ with tab3:
     # 右側：季繳追蹤清單與編輯
     with col_right:
         st.subheader("📋季繳追蹤清單")
+        
+        # 將標題列切分為左右，讓按鈕靠右對齊
+        col_title, col_dl = st.columns([7, 3])
+        with col_title:
+            st.subheader("📋季繳追蹤清單")
+        with col_dl:
+            # 準備 Excel 檔案
+            dl_output = io.BytesIO()
+            with pd.ExcelWriter(dl_output, engine='openpyxl') as writer:
+                st.session_state.trans_df.to_excel(writer, sheet_name='收支明細', index=False)
+                st.session_state.members_df.to_excel(writer, sheet_name='季繳名單', index=False)
+                
+            st.download_button(
+                label="📥下載 Excel",
+                data=dl_output.getvalue(),
+                file_name=f"哈蜜瓜收支表_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
 
         # 初始化動態 Key (用於取消刪除時強制刷新前端畫面)
         if "members_key_version" not in st.session_state:
