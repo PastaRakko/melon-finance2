@@ -206,7 +206,6 @@ with tab2:
 
     # 右側：收支總表與編輯
     with col_right:
-        st.subheader("📝收支總表")
         # 將標題列切分為左右，讓按鈕靠右對齊
         col_title, col_dl = st.columns([7, 3])
         with col_title:
@@ -331,8 +330,7 @@ with tab3:
 
     # 右側：季繳追蹤清單與編輯
     with col_right:
-        st.subheader("📋季繳追蹤清單")
-        
+       
         # 將標題列切分為左右，讓按鈕靠右對齊
         col_title, col_dl = st.columns([7, 3])
         with col_title:
