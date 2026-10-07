@@ -224,6 +224,8 @@ with tab2:
             
         # 插入刪除打勾欄位
         display_df.insert(0, "🗑️刪除", False)
+
+        del_col = display_df.columns[0]
             
         edited_trans = st.data_editor(
             display_df, 
@@ -255,8 +257,8 @@ with tab2:
                     st.session_state.trans_key_version += 1
                     st.rerun()
         else:
-            orig_check = display_df.drop(columns=["🗑️刪除"])
-            edit_check = edited_trans.drop(columns=["🗑️刪除"])
+            orig_check = display_df.iloc[:, 1:]
+            edit_check = edited_trans.iloc[:, 1:]
             if not edit_check.equals(orig_check):
                 st.session_state.trans_df = edit_check
                 st.rerun()
@@ -322,6 +324,8 @@ with tab3:
         # 插入刪除打勾欄位
         display_df.insert(0, "🗑️刪除", False)
 
+        del_col_mem = display_df.columns[0]
+
         def highlight_zero(row):
             if row['剩餘次數'] <= 0:
                 return ['text-decoration: line-through; color: #888888;'] * len(row)
@@ -355,10 +359,10 @@ with tab3:
                     st.session_state.members_key_version += 1
                     st.rerun()
         else:
-            orig_check = display_df.drop(columns=["🗑️刪除"])
-            edit_check = edited_members.drop(columns=["🗑️刪除"])
+            orig_check = display_df[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']]
+            edit_check = edited_members[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']]
             if not edit_check.equals(orig_check):
-                st.session_state.members_df = edited_members[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']]
+                st.session_state.members_df = edit_check
                 st.rerun()
 
 
