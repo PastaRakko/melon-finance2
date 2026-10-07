@@ -224,6 +224,7 @@ with tab2:
                 file_name=f"哈蜜瓜收支表_{datetime.now().strftime('%Y%m%d')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
+                key="dl_tab2"
             )
 
         # 初始化動態 Key (用於取消刪除時強制刷新前端畫面)
@@ -349,6 +350,7 @@ with tab3:
                 file_name=f"哈蜜瓜收支表_{datetime.now().strftime('%Y%m%d')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
+                key="dl_tab3"
             )
 
         # 初始化動態 Key (用於取消刪除時強制刷新前端畫面)
