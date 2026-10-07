@@ -14,8 +14,8 @@ st.title("🍈哈蜜瓜收支與季繳管理表")
 # ==========================================
 @st.cache_data
 def load_excel():
-    df_trans = pd.read_excel("For Streamlit.xlsx", sheet_name='收支明細')
-    df_members = pd.read_excel("For Streamlit.xlsx", sheet_name='季繳名單')
+    df_trans = pd.read_excel("哈蜜瓜收支表.xlsx", sheet_name='收支明細')
+    df_members = pd.read_excel("哈蜜瓜收支表.xlsx", sheet_name='季繳名單')
     
     # 自動清除所有欄位名稱前後的隱藏空白字元
     df_trans.columns = df_trans.columns.str.strip()
@@ -97,7 +97,7 @@ with st.sidebar:
                 repo = g.get_repo(st.secrets["REPO_NAME"])
                 
                 # 3. 取得原本的檔案並進行覆蓋
-                file_path = "For Streamlit.xlsx"
+                file_path = "哈蜜瓜收支表.xlsx"
                 contents = repo.get_contents(file_path)
                 
                 commit_message = f"自動存檔: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
