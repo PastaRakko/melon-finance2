@@ -223,14 +223,16 @@ with tab2:
         with col_dl:
             # 準備 Excel 檔案
             dl_output = io.BytesIO()
+            today_str = datetime.now().strftime('%Y%m%d')
             with pd.ExcelWriter(dl_output, engine='openpyxl') as writer:
-                st.session_state.trans_df.to_excel(writer, sheet_name='收支明細', index=False)
-                st.session_state.members_df.to_excel(writer, sheet_name='季繳名單', index=False)
+                # 在分頁名稱後加上日期
+                st.session_state.trans_df.to_excel(writer, sheet_name=f'收支明細_{today_str}', index=False)
+                st.session_state.members_df.to_excel(writer, sheet_name=f'季繳名單_{today_str}', index=False)
             
             st.download_button(
-                label="📥下載 Excel",
+                label="📥下載Excel",
                 data=dl_output.getvalue(),
-                file_name=f"哈蜜瓜收支表_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                file_name=f"哈蜜瓜收支表_{today_str}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True,
                 key="dl_tab2"
@@ -252,8 +254,6 @@ with tab2:
             
         # 插入刪除打勾欄位
         display_df.insert(0, "🗑️刪除", False)
-        
-        # ✨ 動態抓取第一欄名稱，完全避開 Emoji 字串辨識問題
         del_col = display_df.columns[0]
             
         edited_trans = st.data_editor(
@@ -348,14 +348,16 @@ with tab3:
         with col_dl:
             # 準備 Excel 檔案
             dl_output = io.BytesIO()
+            today_str = datetime.now().strftime('%Y%m%d') # 取得當天日期
             with pd.ExcelWriter(dl_output, engine='openpyxl') as writer:
-                st.session_state.trans_df.to_excel(writer, sheet_name='收支明細', index=False)
-                st.session_state.members_df.to_excel(writer, sheet_name='季繳名單', index=False)
+                # 在分頁名稱後加上日期，例如：收支明細_20261007
+                st.session_state.trans_df.to_excel(writer, sheet_name=f'收支明細_{today_str}', index=False)
+                st.session_state.members_df.to_excel(writer, sheet_name=f'季繳名單_{today_str}', index=False)
                 
             st.download_button(
-                label="📥下載 Excel",
+                label="📥下載Excel",
                 data=dl_output.getvalue(),
-                file_name=f"哈蜜瓜收支表_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                file_name=f"哈蜜瓜收支表_{today_str}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True,
                 key="dl_tab3"
