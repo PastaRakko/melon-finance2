@@ -50,7 +50,7 @@ if 'members_df' not in st.session_state:
 
 if 'trans_df' not in st.session_state:
     df_t = df_trans.copy()
-    # 清理收支明細 (將文字轉為數字，並去除資料內的 $ 與逗號符號)
+    # 清理收支明細 (將文字轉為數字，並去除資料內的逗號與可能殘留的符號)
     if '金額' in df_t.columns:
         df_t['金額'] = pd.to_numeric(df_t['金額'].astype(str).replace(r'[\$,]', '', regex=True), errors='coerce').fillna(0)
     if '日期' in df_t.columns:
@@ -239,7 +239,9 @@ with tab2:
                 "日期": st.column_config.DateColumn("日期", format="YYYY-MM-DD"),
                 "類別": st.column_config.SelectboxColumn("類別", options=["收入", "支出"], required=True),
                 "項目": st.column_config.SelectboxColumn("項目", options=item_options),
-                "經手人": st.column_config.SelectboxColumn("經手人", options=handler_options)
+                "金額": st.column_config.NumberColumn("金額", format="%d"),
+                "經手人": st.column_config.SelectboxColumn("經手人", options=handler_options),
+                "備註": st.column_config.TextColumn("備註")
             }
         )   
         
