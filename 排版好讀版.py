@@ -52,7 +52,7 @@ if 'trans_df' not in st.session_state:
     df_t = df_trans.copy()
     # 清理收支明細 (去除 $ 與逗號，並將日期標準化)
     if '$' in df_t.columns:
-        df_t['$'] = pd.to_numeric(df_t['$'].astype(str).replace('[\$,]', '', regex=True), errors='coerce').fillna(0)
+        df_t['$'] = pd.to_numeric(df_t['$'].astype(str).replace(r'[\$,]', '', regex=True), errors='coerce').fillna(0)
     if '日期' in df_t.columns:
         df_t['日期'] = pd.to_datetime(df_t['日期'], errors='coerce')
     st.session_state.trans_df = df_t
