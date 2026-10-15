@@ -134,24 +134,27 @@ with tab1:
         total_expense = current_trans[current_trans['類別'] == '支出']['金額'].sum()
         net_balance = total_income - total_expense
 
-        # 安全挪用款
+        # 場地預留金 
         if '項目' in current_trans.columns:
             venue_expenses = current_trans[(current_trans['類別'] == '支出') & (current_trans['項目'] == '場地費')]['金額']
             weekly_venue_fee = venue_expenses.mode()[0] if not venue_expenses.empty else 760
         else:
             weekly_venue_fee = 380 * 2
-        safe_buffer = weekly_venue_fee * 2 
+        venue_reserve = weekly_venue_fee * 2 
 
         # 季繳預留金
         total_remaining = st.session_state.members_df['剩餘次數'].sum()
         cost_per_time = 220
         quarterly_reserve = total_remaining * cost_per_time
 
+        # 可挪用金額 = 總結餘 - 季繳預留 - 場地預留
+        usable_balance = net_balance - quarterly_reserve - venue_reserve
+
         col1, col2, col3 = st.columns(3)
         with col2:
             st.metric("💵總結餘金額", f"${net_balance:,.0f}")
         with col1:
-            st.success(f"### 🛡️可挪用金額: **${safe_buffer:,.0f}**")
+            st.success(f"### 🛡️可挪用金額: **${usable_balance:,.0f}**")
         with col3:
             st.metric("💳季繳預留金", f"${quarterly_reserve:,.0f}")
             
@@ -441,8 +444,8 @@ with tab4:
        
     ### 🧑‍💼預估設定
     * **總結餘金額：** 收入-支出
-    * **季繳預留金：** 預留2周場地費並預設租借2個場地
-    * **可挪用金額：** 總結餘金額-季繳預留金
+    * **季繳預留金：** 季繳球友剩餘總次數 × 220元
+    * **可挪用金額：** 總結餘金額-季繳預留金-預留2周場地費
 
     ### 📈統計結果【2026.4~2026.9】
     * 每次開團平均人次：12.43人
