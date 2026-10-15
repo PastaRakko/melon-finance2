@@ -233,7 +233,7 @@ with tab2:
                 st.session_state.members_df.to_excel(writer, sheet_name=f'季繳名單_{today_str}', index=False)
             
             st.download_button(
-                label="📥下載Excel",
+                label="📥下載總表",
                 data=dl_output.getvalue(),
                 file_name=f"哈蜜瓜收支表_{today_str}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -358,7 +358,7 @@ with tab3:
                 st.session_state.members_df.to_excel(writer, sheet_name=f'季繳名單_{today_str}', index=False)
                 
             st.download_button(
-                label="📥下載Excel",
+                label="📥下載總表",
                 data=dl_output.getvalue(),
                 file_name=f"哈蜜瓜收支表_{today_str}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
