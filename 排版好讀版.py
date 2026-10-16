@@ -98,37 +98,37 @@ with col_title:
     st.title("🍈哈蜜瓜收支與季繳管理表")
 with col_save:
     if st.button("💾確認更新並存檔", type="primary", use_container_width=True):
-        with st.spinner("⌛正在上傳資料中，請稍候..."):
-            try:
-                now_str = datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
-                
-                # 存檔前整理資料格式（純日期 YYYY-MM-DD，收支明細按日期排序）
-                save_trans_df = get_sorted_trans_df(st.session_state.trans_df)
-                save_members_df = get_clean_members_df(st.session_state.members_df)
-                
-                st.session_state.trans_df = save_trans_df
-                
-                # 1. 產生最新的 Excel 檔案內容到記憶體
-                output = io.BytesIO()
-                with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    save_trans_df.to_excel(writer, sheet_name='收支明細', index=False)
-                    save_members_df.to_excel(writer, sheet_name='季繳名單', index=False)
-                excel_data = output.getvalue()
-                
-                # 2. 呼叫 Secrets 連線至 GitHub 覆蓋舊檔
-                g = Github(st.secrets["GITHUB_TOKEN"])
-                repo = g.get_repo(st.secrets["REPO_NAME"])
-                
-                file_path = "哈蜜瓜收支表.xlsx"
-                contents = repo.get_contents(file_path)
-                
-                commit_message = f"自動存檔: {now_str}"
-                repo.update_file(contents.path, commit_message, excel_data, contents.sha)
-                
-                st.session_state.last_updated = now_str
-                st.success("✅存檔成功！資料已完成同步")
-            except Exception as e:
-                st.error(f"❌存檔失敗：請檢查 Secrets 設定或 Token 權限。錯誤細節：{e}")
+        try:
+            # 取得當前台灣時間字串
+            now_str = datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
+            
+            # 存檔前整理資料格式（純日期 YYYY-MM-DD，收支明細按日期排序）
+            save_trans_df = get_sorted_trans_df(st.session_state.trans_df)
+            save_members_df = get_clean_members_df(st.session_state.members_df)
+            st.session_state.trans_df = save_trans_df
+            
+            # 1. 產生最新的 Excel 檔案內容到記憶體
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                save_trans_df.to_excel(writer, sheet_name='收支明細', index=False)
+                save_members_df.to_excel(writer, sheet_name='季繳名單', index=False)
+            excel_data = output.getvalue()
+            
+            # 2. 呼叫 Secrets 連線至 GitHub 覆蓋舊檔
+            g = Github(st.secrets["GITHUB_TOKEN"])
+            repo = g.get_repo(st.secrets["REPO_NAME"])
+            
+            file_path = "哈蜜瓜收支表.xlsx"
+            contents = repo.get_contents(file_path)
+            
+            commit_message = f"自動存檔: {now_str}"
+            repo.update_file(contents.path, commit_message, excel_data, contents.sha)
+            
+            st.session_state.last_updated = now_str
+            st.toast("✅ 存檔成功！資料已同步", icon="🎉")
+            st.rerun()
+        except Exception as e:
+            st.error(f"❌ 存檔失敗：{e}")
 
 with col_reload:
     if st.button("🔄重新讀取資料", use_container_width=True):
