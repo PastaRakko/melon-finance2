@@ -182,30 +182,17 @@ with tab1:
             unsafe_allow_html=True
         )
 
-    # --- 右半邊：顯示圖表 ---
+    # --- 右半邊：圖表 ---
     with col_charts:
         st.subheader("📊收支圖表分析")
-        
         if '類別' in current_trans.columns and '金額' in current_trans.columns and '日期' in current_trans.columns:
-            # 在右側的區塊中，再切出兩個欄位並排顯示圖表
-            col_chart1, col_chart2 = st.columns(2)
-            with col_chart1:
-                summary = current_trans.groupby('類別')['金額'].sum().reset_index()
-                fig_pie = px.pie(summary, values='金額', names='類別', title="總收入 vs 總支出",
-                                 color='類別', color_discrete_map={'收入':'#28a745', '支出':'#dc3545'})
-                st.plotly_chart(fig_pie, use_container_width=True)
-                
-            with col_chart2:
-                plot_df = current_trans.dropna(subset=['日期']).copy()
-                plot_df['月份'] = plot_df['日期'].dt.strftime('%Y-%m')
-
-                monthly_summary = plot_df.groupby(['月份', '類別'])['金額'].sum().reset_index()
-                
-                fig_bar = px.bar(monthly_summary, x='月份', y='金額', color='類別', barmode='group', title="每月收支變化",
-                                 color_discrete_map={'收入':'#28a745', '支出':'#dc3545'})
-                # 確保 X 軸顯示為純文字類別 (解決時間格式跑版)
-                fig_bar.update_layout(xaxis_type='category')
-                st.plotly_chart(fig_bar, use_container_width=True)
+            plot_df = current_trans.dropna(subset=['日期']).copy()
+            plot_df['月份'] = plot_df['日期'].dt.strftime('%Y-%m')
+            monthly_summary = plot_df.groupby(['月份', '類別'])['金額'].sum().reset_index()
+            fig_bar = px.bar(monthly_summary, x='月份', y='金額', color='類別', barmode='group', title="每月收支變化",
+                            color_discrete_map={'收入':'#28a745', '支出':'#dc3545'})
+            fig_bar.update_layout(xaxis_type='category')
+            st.plotly_chart(fig_bar, use_container_width=True)
                 
 # ------------------------------------------
 # 分頁 2：📊記帳與管理
