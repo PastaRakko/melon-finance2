@@ -246,6 +246,10 @@ with tab2:
             # 準備 Excel 檔案
             dl_output = io.BytesIO()
             today_str = datetime.now().strftime('%Y%m%d')
+            export_trans_df = st.session_state.trans_df.copy()
+            if '日期' in export_trans_df.columns:
+                export_trans_df['日期'] = pd.to_datetime(export_trans_df['日期'], errors='coerce')
+                export_trans_df = export_trans_df.sort_values(by='日期', ascending=False)           
             with pd.ExcelWriter(dl_output, engine='openpyxl') as writer:
                 # 在分頁名稱後加上日期
                 st.session_state.trans_df.to_excel(writer, sheet_name=f'收支明細_{today_str}', index=False)
@@ -370,7 +374,11 @@ with tab3:
         with col_dl:
             # 準備 Excel 檔案
             dl_output = io.BytesIO()
-            today_str = datetime.now().strftime('%Y%m%d') # 取得當天日期
+            today_str = datetime.now().strftime('%Y%m%d')
+            export_trans_df = st.session_state.trans_df.copy()
+            if '日期' in export_trans_df.columns:
+                export_trans_df['日期'] = pd.to_datetime(export_trans_df['日期'], errors='coerce')
+                export_trans_df = export_trans_df.sort_values(by='日期', ascending=False)
             with pd.ExcelWriter(dl_output, engine='openpyxl') as writer:
                 # 在分頁名稱後加上日期，例如：收支明細_20261007
                 st.session_state.trans_df.to_excel(writer, sheet_name=f'收支明細_{today_str}', index=False)
