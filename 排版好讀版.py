@@ -96,7 +96,7 @@ if '經手人' in current_trans.columns:
 st.markdown("""
 <style>
 div.stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #1e3c72, #2a5298) !important;
+    background: linear-gradient(135deg, #2e7d32, #1b5e20) !important;
     color: white !important;
     border: none !important;
     border-radius: 8px !important;
@@ -105,7 +105,7 @@ div.stButton > button[kind="primary"] {
     transition: all 0.2s ease !important;
 }
 div.stButton > button[kind="primary"]:hover {
-    background: linear-gradient(135deg, #2a5298, #1e3c72) !important;
+    background: linear-gradient(135deg, #388e3c, #2e7d32) !important;
     box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
     transform: translateY(-1px);
 }
