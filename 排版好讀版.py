@@ -96,13 +96,18 @@ if '經手人' in current_trans.columns:
 st.markdown("""
 <style>
 div.stButton > button[kind="primary"] {
-    background-color: #0d6efd !important;
+    background: linear-gradient(135deg, #1e3c72, #2a5298) !important;
     color: white !important;
-    border-color: #0d6efd !important;
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+    font-weight: bold !important;
+    transition: all 0.2s ease !important;
 }
 div.stButton > button[kind="primary"]:hover {
-    background-color: #0b5ed7 !important;
-    border-color: #0a58ca !important;
+    background: linear-gradient(135deg, #2a5298, #1e3c72) !important;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
+    transform: translateY(-1px);
 }
 </style>
 """, unsafe_allow_html=True)
