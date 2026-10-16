@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+TW_TZ = timezone(timedelta(hours=8))
 import numpy as np
 import io
 from github import Github
@@ -100,7 +101,7 @@ with col_save:
     if st.button("💾確認更新並存檔", type="primary", use_container_width=True):
         with st.spinner("⌛正在上傳資料中，請稍候..."):
             try:
-                now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                now_str = datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
                 
                 # 存檔前整理資料格式（純日期 YYYY-MM-DD，收支明細按日期排序）
                 save_trans_df = get_sorted_trans_df(st.session_state.trans_df)
@@ -137,7 +138,7 @@ with col_reload:
             del st.session_state['trans_df']
         if 'members_df' in st.session_state:
             del st.session_state['members_df']
-        st.session_state.last_updated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        st.session_state.last_updated = datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
         st.rerun()
 
 # 執行讀取資料
@@ -261,7 +262,7 @@ with tab2:
             st.subheader("📝收支總表")
         with col_dl:
             dl_output = io.BytesIO()
-            today_str = datetime.now().strftime('%Y%m%d')
+            today_str = datetime.now(TW_TZ).strftime('%Y%m%d')
             
             # 準備匯出的純日期且排序好的 Excel 資料
             export_trans_df = get_sorted_trans_df(st.session_state.trans_df)
@@ -390,7 +391,7 @@ with tab3:
             st.subheader("📋季繳追蹤清單")
         with col_dl:
             dl_output = io.BytesIO()
-            today_str = datetime.now().strftime('%Y%m%d')
+            today_str = datetime.now(TW_TZ).strftime('%Y%m%d')
             
             export_trans_df = get_sorted_trans_df(st.session_state.trans_df)
             export_members_df = get_clean_members_df(st.session_state.members_df)
