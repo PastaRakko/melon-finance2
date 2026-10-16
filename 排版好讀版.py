@@ -174,13 +174,14 @@ with tab1:
         col_m1, col_m2 = st.columns(2)
         with col_m1:
             st.metric("💵總結餘金額", f"${net_balance:,.0f}")
-            last_sync_time = st.session_state.get('last_updated', '尚未更新')
-            st.caption(f"⏱️ 更新時間：{last_sync_time}")
+
         with col_m2:
             st.metric("💳季繳預留金", f"${quarterly_reserve:,.0f}")
             
         st.write("") # 稍微留白
         st.success(f"### 🛡️可挪用金額:\n### **${usable_balance:,.0f}**")
+        last_sync_time = st.session_state.get('last_updated', '尚未更新')
+        st.caption(f"⏱️ 更新時間：{last_sync_time}")
 
     # --- 中間：插入垂直分隔線 ---#
     with col_line:
