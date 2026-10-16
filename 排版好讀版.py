@@ -176,6 +176,13 @@ with tab1:
         st.write("") # 稍微留白
         st.success(f"### 🛡️可挪用金額:\n### **${usable_balance:,.0f}**")
 
+    # --- 中間：插入垂直分隔線 ---#
+    with col_line:
+        st.markdown(
+            '<div style="width: 2px; height: 400px; background-color: #e0e0e0; margin: 0 auto; margin-top: 50px;"></div>', 
+            unsafe_allow_html=True
+        )
+
     # --- 右半邊：顯示圖表 ---
     with col_charts:
         st.subheader("📊收支圖表分析")
