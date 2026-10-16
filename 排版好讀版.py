@@ -457,22 +457,62 @@ with tab4:
     st.subheader("ℹ️後台資訊")
     st.info("💡提示：如需修改以下內容，請通知團主")
     
-    st.markdown("""
-    ### 💰收費標準
-    * **季繳球友：** 預繳10次共2200元
-    * **臨打球友：** 每次250元、只打1小時每次150元
-    * **羽毛球費：** 每桶610元
+    st.write("") # 增加一點間距
     
-    ### 🎉球團福利
-    * **當月壽星優惠：** 只要為打過一次的球友，便可享一次臨打免費+飲料任挑
-       
-    ### 🧑‍💼預估設定
-    * **總結餘金額：** 收入-支出
-    * **季繳預留金：** 季繳球友剩餘總次數 × 220元
-    * **可挪用金額：** 總結餘金額-季繳預留金-預留2周場地費
+    # --- 第一列 (2個欄位) ---
+    row1_col1, row1_col2 = st.columns(2)
+    
+    with row1_col1:
+        # 💰收費標準 (淺藍色背景)
+        st.markdown("""
+        <div style="background-color: #e3f2fd; padding: 20px; border-radius: 12px; min-height: 190px; color: #1f1f1f;">
+            <h3 style="margin-top: 0; color: #0d47a1;">💰收費標準</h3>
+            <ul style="margin-bottom: 0; line-height: 1.8;">
+                <li><b>季繳球友：</b>預繳10次共2200元</li>
+                <li><b>臨打球友：</b>每次250元、只打1小時每次150元</li>
+                <li><b>羽毛球費：</b>每桶610元</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
 
-    ### 📈統計結果【2026.4~2026.9】
-    * 每次開團平均人次：12.43人
-    * 每次開團場地平均使用時數：3.78hrs
-    * 每次開團分攤時數：0.314hr/人場
-    """)
+    with row1_col2:
+        # 🎉球團福利 (淺橘黃色背景)
+        st.markdown("""
+        <div style="background-color: #fff3e0; padding: 20px; border-radius: 12px; min-height: 190px; color: #1f1f1f;">
+            <h3 style="margin-top: 0; color: #e65100;">🎉球團福利</h3>
+            <ul style="margin-bottom: 0; line-height: 1.8;">
+                <li><b>當月壽星優惠：</b>只要為打過一次的球友，便可享一次臨打免費+飲料任挑</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    st.write("") # 第一列與第二列之間的間距
+    
+    # --- 第二列 (2個欄位) ---
+    row2_col1, row2_col2 = st.columns(2)
+    
+    with row2_col1:
+        # 🧑‍💼預估設定 (淺綠色背景)
+        st.markdown("""
+        <div style="background-color: #e8f5e9; padding: 20px; border-radius: 12px; min-height: 190px; color: #1f1f1f;">
+            <h3 style="margin-top: 0; color: #1b5e20;">🧑‍💼預估設定</h3>
+            <ul style="margin-bottom: 0; line-height: 1.8;">
+                <li><b>總結餘金額：</b>收入-支出</li>
+                <li><b>季繳預留金：</b>季繳球友剩餘總次數 × 220元</li>
+                <li><b>可挪用金額：</b>總結餘金額-季繳預留金-預留2周場地費</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with row2_col2:
+        # 📈統計結果 (淺紫色背景)
+        st.markdown("""
+        <div style="background-color: #f3e5f5; padding: 20px; border-radius: 12px; min-height: 190px; color: #1f1f1f;">
+            <h3 style="margin-top: 0; color: #4a148c;">📈統計結果【2026.4~2026.9】</h3>
+            <ul style="margin-bottom: 0; line-height: 1.8;">
+                <li>每次開團平均人次：12.43人</li>
+                <li>每次開團場地平均使用時數：3.78hrs</li>
+                <li>每次開團分攤時數：0.314hr/人場</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
