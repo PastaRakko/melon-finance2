@@ -93,25 +93,6 @@ if '經手人' in current_trans.columns:
 # 快捷按鈕存檔與重新讀取 (標題旁邊)
 # ==========================================
 
-st.markdown("""
-<style>
-div.stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #2e7d32, #1b5e20) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 8px !important;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
-    font-weight: bold !important;
-    transition: all 0.2s ease !important;
-}
-div.stButton > button[kind="primary"]:hover {
-    background: linear-gradient(135deg, #388e3c, #2e7d32) !important;
-    box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
-    transform: translateY(-1px);
-}
-</style>
-""", unsafe_allow_html=True)
-
 col_title, col_save, col_reload = st.columns([6, 2, 2], vertical_alignment="bottom")
 with col_title:
     st.title("🍈哈蜜瓜收支與季繳管理表")
