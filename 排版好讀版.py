@@ -7,7 +7,6 @@ import io
 from github import Github
 
 st.set_page_config(page_title="哈蜜瓜收支表", page_icon="🍈", layout="wide")
-st.title("🍈哈蜜瓜收支與季繳管理表")
 
 # ==========================================
 # 1. 讀取 Excel 檔案
@@ -76,13 +75,17 @@ if '經手人' in current_trans.columns:
             handler_options.append(x)
 
 # ==========================================
-# 左側邊欄：一鍵雲端存檔
+# 快捷按鈕存檔檔案
 # ==========================================
-with st.sidebar:
-    st.header("💾雲端同步存檔")
-    st.info("💡完成資料修改後，請務必點擊下方按鈕以更新")
-   
-    if st.button("👆確認更新並存檔", use_container_width=True):
+
+col_title, col_save, col_reload = st.columns([6, 2, 2], vertical_alignment="bottom")
+
+with col_title:
+    st.title("🍈哈蜜瓜收支與季繳管理表")
+
+with col_save:
+    # 加上 type="primary" 讓存檔按鈕顏色更醒目
+    if st.button("💾確認更新並存檔", type="primary", use_container_width=True):
         with st.spinner("⌛正在上傳資料中，請稍候..."):
             try:
                 # 1. 產生最新的 Excel 檔案內容到記憶體
@@ -107,15 +110,22 @@ with st.sidebar:
             except Exception as e:
                 st.error(f"❌存檔失敗：請檢查 Secrets 設定或 Token 權限。錯誤細節：{e}")
 
-    #重新讀取按鈕
-    if st.button("🔄重新讀取最新資料", use_container_width=True):
+with col_reload:
+    # 重新讀取最新資料的按鈕
+    if st.button("🔄重新讀取資料", use_container_width=True):
         load_excel.clear() 
         if 'trans_df' in st.session_state:
             del st.session_state['trans_df']
         if 'members_df' in st.session_state:
             del st.session_state['members_df']
-        st.success("✅已抓取最新資料！")
         st.rerun()
+
+# 執行讀取資料
+try:
+    df_trans, df_members = load_excel()
+except Exception as e:
+    st.error("讀取 Excel 失敗，請確認檔案與分頁是否存在。")
+    st.stop()
 
 # ==========================================
 # 3. 建立網頁分頁
@@ -233,7 +243,7 @@ with tab2:
                 st.session_state.members_df.to_excel(writer, sheet_name=f'季繳名單_{today_str}', index=False)
             
             st.download_button(
-                label="📥下載總表",
+                label="📥下載Excel",
                 data=dl_output.getvalue(),
                 file_name=f"哈蜜瓜收支表_{today_str}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -358,7 +368,7 @@ with tab3:
                 st.session_state.members_df.to_excel(writer, sheet_name=f'季繳名單_{today_str}', index=False)
                 
             st.download_button(
-                label="📥下載總表",
+                label="📥下載Excel",
                 data=dl_output.getvalue(),
                 file_name=f"哈蜜瓜收支表_{today_str}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
