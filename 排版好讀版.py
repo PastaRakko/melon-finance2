@@ -28,7 +28,6 @@ def get_sorted_trans_df(df):
     if '日期' in temp_df.columns:
         temp_df['日期'] = pd.to_datetime(temp_df['日期'], errors='coerce')
         temp_df = temp_df.sort_values(by='日期', ascending=False, na_position='last').reset_index(drop=True)
-        # 轉換為純日期格式字串 (YYYY-MM-DD)
         temp_df['日期'] = temp_df['日期'].dt.strftime('%Y-%m-%d')
     return temp_df
 
@@ -284,29 +283,40 @@ with tab2:
         if "trans_key_version" not in st.session_state:
             st.session_state.trans_key_version = 0
         
+        # 1. 取得排序後的資料
         display_df = get_sorted_trans_df(st.session_state.trans_df)
 
+        # 2. 強制把「日期」轉為 dt.date 物件，防範 data_editor 報錯
+        if '日期' in display_df.columns:
+            display_df['日期'] = pd.to_datetime(display_df['日期'], errors='coerce').dt.date
+
+        # 3. 處理空值避免顯示 None
         for col in display_df.select_dtypes(include=['object']).columns:
             display_df[col] = display_df[col].fillna("")
             
+        # 4. 插入刪除欄位
         display_df.insert(0, "🗑️刪除", False)
         del_col = display_df.columns[0]
             
+        # 5. 安全地建立 column_config
+        cfg = {
+            del_col: st.column_config.CheckboxColumn("刪除", default=False, width="small"),
+            "類別": st.column_config.SelectboxColumn("類別", options=["收入", "支出"], required=True),
+            "項目": st.column_config.SelectboxColumn("項目", options=item_options),
+            "金額": st.column_config.NumberColumn("金額", format="%d"),
+            "經手人": st.column_config.SelectboxColumn("經手人", options=handler_options),
+            "備註": st.column_config.TextColumn("備註")
+        }
+        if "日期" in display_df.columns:
+            cfg["日期"] = st.column_config.DateColumn("日期", format="YYYY-MM-DD")
+
         edited_trans = st.data_editor(
             display_df, 
             use_container_width=True, 
             num_rows="fixed",
             hide_index=True,
             key=f"trans_editor_{st.session_state.trans_key_version}",
-            column_config={
-                del_col: st.column_config.CheckboxColumn("刪除", default=False, width="small"),
-                "日期": st.column_config.DateColumn("日期", format="YYYY-MM-DD"),
-                "類別": st.column_config.SelectboxColumn("類別", options=["收入", "支出"], required=True),
-                "項目": st.column_config.SelectboxColumn("項目", options=item_options),
-                "金額": st.column_config.NumberColumn("金額", format="%d"),
-                "經手人": st.column_config.SelectboxColumn("經手人", options=handler_options),
-                "備註": st.column_config.TextColumn("備註")
-            }
+            column_config=cfg
         )   
         
         if edited_trans[del_col].any():
@@ -408,9 +418,23 @@ with tab3:
 
         display_df = st.session_state.members_df.copy()
         display_df['狀態提醒'] = display_df['剩餘次數'].apply(update_status)
-          
+        
+        # 安全轉為 dt.date
+        for date_col in ['繳費日期', '季繳開始日期']:
+            if date_col in display_df.columns:
+                display_df[date_col] = pd.to_datetime(display_df[date_col], errors='coerce').dt.date
+
         display_df.insert(0, "🗑️刪除", False)
         del_col_mem = display_df.columns[0]
+
+        mem_cfg = {
+            del_col_mem: st.column_config.CheckboxColumn("刪除", default=False, width="small"),
+            "剩餘次數": st.column_config.NumberColumn("剩餘次數", format="%d")
+        }
+        if "繳費日期" in display_df.columns:
+            mem_cfg["繳費日期"] = st.column_config.DateColumn("繳費日期", format="YYYY-MM-DD")
+        if "季繳開始日期" in display_df.columns:
+            mem_cfg["季繳開始日期"] = st.column_config.DateColumn("季繳開始日期", format="YYYY-MM-DD")
 
         edited_members = st.data_editor(
             display_df,
@@ -418,12 +442,7 @@ with tab3:
             num_rows="fixed",
             hide_index=True,
             key=f"members_editor_{st.session_state.members_key_version}",
-            column_config={
-                del_col_mem: st.column_config.CheckboxColumn("刪除", default=False, width="small"),
-                "繳費日期": st.column_config.DateColumn("繳費日期", format="YYYY-MM-DD"),
-                "季繳開始日期": st.column_config.DateColumn("季繳開始日期", format="YYYY-MM-DD"),
-                "剩餘次數": st.column_config.NumberColumn("剩餘次數", format="%d")
-            }
+            column_config=mem_cfg
         )
 
         if edited_members[del_col_mem].any():
@@ -451,7 +470,6 @@ with tab3:
 # ------------------------------------------
 with tab4:
     st.subheader("ℹ️後台資訊")
-    # 純文字提示 (已去除藍色底框)
     st.markdown("💡 **提示：如需修改以下內容，請通知團主**")
     st.write("") 
     
