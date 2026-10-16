@@ -160,13 +160,21 @@ with tab1:
         # 可挪用金額 = 總結餘 - 季繳預留 - 場地預留
         usable_balance = net_balance - quarterly_reserve - venue_reserve
 
-        col1, col2, col3 = st.columns(3)
-        with col2:
-            st.metric("💵總結餘金額", f"${net_balance:,.0f}")
-        with col1:
+        # ✨ 改為完美的左右排版：左邊大框，右邊數據
+        col_left, col_right = st.columns([1, 1])
+        
+        with col_left:
+            # 加上一點空白讓綠框與右邊的數字高度對齊
+            st.write("") 
             st.success(f"### 🛡️可挪用金額: **${usable_balance:,.0f}**")
-        with col3:
-            st.metric("💳季繳預留金", f"${quarterly_reserve:,.0f}")
+            
+        with col_right:
+            # 右側再切成兩半，整齊放下總結餘跟季繳預留金
+            col_inner1, col_inner2 = st.columns(2)
+            with col_inner1:
+                st.metric("💵總結餘金額", f"${net_balance:,.0f}")
+            with col_inner2:
+                st.metric("💳季繳預留金", f"${quarterly_reserve:,.0f}")
             
     st.divider()
     
