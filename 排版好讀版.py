@@ -106,6 +106,7 @@ with col_save:
                 commit_message = f"自動存檔: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
                 repo.update_file(contents.path, commit_message, excel_data, contents.sha)
                 
+                st.session_state.last_updated = now_str
                 st.success("✅存檔成功！資料已完成同步")
             except Exception as e:
                 st.error(f"❌存檔失敗：請檢查 Secrets 設定或 Token 權限。錯誤細節：{e}")
@@ -118,6 +119,7 @@ with col_reload:
             del st.session_state['trans_df']
         if 'members_df' in st.session_state:
             del st.session_state['members_df']
+        st.session_state.last_updated = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         st.rerun()
 
 # 執行讀取資料
@@ -169,6 +171,8 @@ with tab1:
         col_m1, col_m2 = st.columns(2)
         with col_m1:
             st.metric("💵總結餘金額", f"${net_balance:,.0f}")
+            last_sync_time = st.session_state.get('last_updated', '尚未更新')
+            st.caption(f"⏱️ 更新時間：{last_sync_time}")
         with col_m2:
             st.metric("💳季繳預留金", f"${quarterly_reserve:,.0f}")
             
