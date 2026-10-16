@@ -98,7 +98,7 @@ with col_title:
     st.title("🍈哈蜜瓜收支與季繳管理表")
 
 with col_save:
-    if st.button("💾確認更新並存檔", type="primary", use_container_width=True):
+    if st.button("💾確認更新並存檔", type="secondary", use_container_width=True):
         with st.spinner("⌛正在上傳資料中，請稍候..."):
             try:
                 now_str = datetime.now(TW_TZ).strftime('%Y-%m-%d %H:%M:%S')
@@ -132,7 +132,7 @@ with col_save:
                 st.error(f"❌存檔失敗：請檢查 Secrets 設定或 Token 權限。錯誤細節：{e}")
 
 with col_reload:
-    if st.button("🔄重新讀取資料", use_container_width=True):
+    if st.button("🔄重新讀取資料", type="primary", use_container_width=True):
         load_excel.clear() 
         if 'trans_df' in st.session_state:
             del st.session_state['trans_df']
