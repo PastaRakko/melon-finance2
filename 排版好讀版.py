@@ -22,6 +22,24 @@ def load_excel():
    
     return df_trans, df_members
 
+# 輔助函式：取得依日期排序好的收支明細表 (由新到舊，且格式化為純日期 YYYY-MM-DD)
+def get_sorted_trans_df(df):
+    temp_df = df.copy()
+    if '日期' in temp_df.columns:
+        temp_df['日期'] = pd.to_datetime(temp_df['日期'], errors='coerce')
+        temp_df = temp_df.sort_values(by='日期', ascending=False, na_position='last').reset_index(drop=True)
+        # 轉換為純日期格式字串 (YYYY-MM-DD)
+        temp_df['日期'] = temp_df['日期'].dt.strftime('%Y-%m-%d')
+    return temp_df
+
+# 輔助函式：將季繳名單的日期欄位也轉為純日期字串
+def get_clean_members_df(df):
+    temp_df = df.copy()
+    for date_col in ['繳費日期', '季繳開始日期']:
+        if date_col in temp_df.columns:
+            temp_df[date_col] = pd.to_datetime(temp_df[date_col], errors='coerce').dt.strftime('%Y-%m-%d')
+    return temp_df
+
 try:
     df_trans, df_members = load_excel()
 except Exception as e:
@@ -49,12 +67,10 @@ if 'members_df' not in st.session_state:
 
 if 'trans_df' not in st.session_state:
     df_t = df_trans.copy()
-    # 清理收支明細 (將文字轉為數字，並去除資料內的逗號與可能殘留的符號)
     if '金額' in df_t.columns:
         df_t['金額'] = pd.to_numeric(df_t['金額'].astype(str).replace(r'[\$,]', '', regex=True), errors='coerce').fillna(0)
-    if '日期' in df_t.columns:
-        df_t['日期'] = pd.to_datetime(df_t['日期'], errors='coerce')
-    st.session_state.trans_df = df_t
+    # 初始化時立即進行日期排序與格式化
+    st.session_state.trans_df = get_sorted_trans_df(df_t)
 
 current_trans = st.session_state.trans_df
 
@@ -67,7 +83,6 @@ if '項目' in current_trans.columns:
         if x not in item_options and str(x).strip() != "":
             item_options.append(x)
 
-# 經手人選單
 handler_options = ["櫃台", "妙", "齊"]
 if '經手人' in current_trans.columns:
     for x in current_trans['經手人'].dropna().unique():
@@ -75,38 +90,40 @@ if '經手人' in current_trans.columns:
             handler_options.append(x)
 
 # ==========================================
-# 快捷按鈕存檔檔案
+# 快捷按鈕存檔與重新讀取 (標題旁邊)
 # ==========================================
-
 col_title, col_save, col_reload = st.columns([6, 2, 2], vertical_alignment="bottom")
 
 with col_title:
     st.title("🍈哈蜜瓜收支與季繳管理表")
 
 with col_save:
-    # 加上 type="primary" 讓存檔按鈕顏色更醒目
     if st.button("💾確認更新並存檔", type="primary", use_container_width=True):
         with st.spinner("⌛正在上傳資料中，請稍候..."):
             try:
-                # 先取得當前時間字串
                 now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                
+                # 存檔前整理資料格式（純日期 YYYY-MM-DD，收支明細按日期排序）
+                save_trans_df = get_sorted_trans_df(st.session_state.trans_df)
+                save_members_df = get_clean_members_df(st.session_state.members_df)
+                
+                st.session_state.trans_df = save_trans_df
                 
                 # 1. 產生最新的 Excel 檔案內容到記憶體
                 output = io.BytesIO()
                 with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    st.session_state.trans_df.to_excel(writer, sheet_name='收支明細', index=False)
-                    st.session_state.members_df.to_excel(writer, sheet_name='季繳名單', index=False)
+                    save_trans_df.to_excel(writer, sheet_name='收支明細', index=False)
+                    save_members_df.to_excel(writer, sheet_name='季繳名單', index=False)
                 excel_data = output.getvalue()
                 
-                # 2. 呼叫 Secrets 裡面的鑰匙連線至 GitHub
+                # 2. 呼叫 Secrets 連線至 GitHub 覆蓋舊檔
                 g = Github(st.secrets["GITHUB_TOKEN"])
                 repo = g.get_repo(st.secrets["REPO_NAME"])
                 
-                # 3. 取得原本的檔案並進行覆蓋
                 file_path = "哈蜜瓜收支表.xlsx"
                 contents = repo.get_contents(file_path)
                 
-                commit_message = f"自動存檔: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                commit_message = f"自動存檔: {now_str}"
                 repo.update_file(contents.path, commit_message, excel_data, contents.sha)
                 
                 st.session_state.last_updated = now_str
@@ -115,7 +132,6 @@ with col_save:
                 st.error(f"❌存檔失敗：請檢查 Secrets 設定或 Token 權限。錯誤細節：{e}")
 
 with col_reload:
-    # 重新讀取最新資料的按鈕
     if st.button("🔄重新讀取資料", use_container_width=True):
         load_excel.clear() 
         if 'trans_df' in st.session_state:
@@ -144,13 +160,13 @@ tab1, tab2, tab3, tab4 = st.tabs(["💰收支概況", "📊記帳與管理", "�
 with tab1:
     col_text, col_line, col_charts = st.columns([1, 0.1, 2])
     
-    # --- 先進行所有財務數據的幕後計算 ---
+    # --- 幕後財務數據計算 ---
     if '類別' in current_trans.columns and '金額' in current_trans.columns:
         total_income = current_trans[current_trans['類別'] == '收入']['金額'].sum()
         total_expense = current_trans[current_trans['類別'] == '支出']['金額'].sum()
         net_balance = total_income - total_expense
 
-        # 場地預留金 
+        # 場地預留金 (僅幕後扣除)
         if '項目' in current_trans.columns:
             venue_expenses = current_trans[(current_trans['類別'] == '支出') & (current_trans['項目'] == '場地費')]['金額']
             weekly_venue_fee = venue_expenses.mode()[0] if not venue_expenses.empty else 760
@@ -163,14 +179,13 @@ with tab1:
         cost_per_time = 220
         quarterly_reserve = total_remaining * cost_per_time
 
-        # 可挪用金額 = 總結餘 - 季繳預留 - 場地預留
+        # 可挪用金額 = 總結餘 - 季繳預留 - 場地預留(幕後)
         usable_balance = net_balance - quarterly_reserve - venue_reserve
 
-    # --- 左半邊：顯示文字與財務數據 ---
+    # --- 左半邊：文字數據 ---
     with col_text:
         st.subheader("💰總財務概況")
         
-        # 改為上下排列，讓資訊在左側邊欄位看起來更緊湊整齊
         col_m1, col_m2 = st.columns(2)
         with col_m1:
             st.metric("💵總結餘金額", f"${net_balance:,.0f}")
@@ -178,30 +193,33 @@ with tab1:
         with col_m2:
             st.metric("💳季繳預留金", f"${quarterly_reserve:,.0f}")
             
-        st.write("") # 稍微留白
+        st.write("") 
         st.success(f"### 🛡️可挪用金額:\n### **${usable_balance:,.0f}**")
+        
+        # 顯示最後更新時間（位於可挪用金額框正下方）
         last_sync_time = st.session_state.get('last_updated', '尚未更新')
         st.caption(f"⏱️ 更新時間：{last_sync_time}")
 
-    # --- 中間：插入垂直分隔線 ---#
+    # --- 中間：垂直分隔線 ---
     with col_line:
         st.markdown(
             '<div style="width: 2px; height: 400px; background-color: #e0e0e0; margin: 0 auto; margin-top: 50px;"></div>', 
             unsafe_allow_html=True
         )
 
-    # --- 右半邊：圖表 ---
+    # --- 右半邊：長條圖 ---
     with col_charts:
         st.subheader("📊收支圖表分析")
         if '類別' in current_trans.columns and '金額' in current_trans.columns and '日期' in current_trans.columns:
             plot_df = current_trans.dropna(subset=['日期']).copy()
-            plot_df['月份'] = plot_df['日期'].dt.strftime('%Y-%m')
+            plot_df['月份'] = pd.to_datetime(plot_df['日期']).dt.strftime('%Y-%m')
             monthly_summary = plot_df.groupby(['月份', '類別'])['金額'].sum().reset_index()
             fig_bar = px.bar(monthly_summary, x='月份', y='金額', color='類別', barmode='group', title="每月收支變化",
                             color_discrete_map={'收入':'#28a745', '支出':'#dc3545'})
             fig_bar.update_layout(xaxis_type='category')
             st.plotly_chart(fig_bar, use_container_width=True)
                 
+
 # ------------------------------------------
 # 分頁 2：📊記帳與管理
 # ------------------------------------------
@@ -232,28 +250,27 @@ with tab2:
                         "經手人": t_handler,
                         "備註": t_note
                     }])
-                    st.session_state.trans_df = pd.concat([st.session_state.trans_df, new_record], ignore_index=True)
+                    updated_trans = pd.concat([st.session_state.trans_df, new_record], ignore_index=True)
+                    st.session_state.trans_df = get_sorted_trans_df(updated_trans)
                     st.success(f"✅已成功記帳：{t_type} - {t_item} ${t_amount}")
                     st.rerun()
 
     # 右側：收支總表與編輯
     with col_right:
-        # 將標題列切分為左右，讓按鈕靠右對齊
         col_title, col_dl = st.columns([7, 3])
         with col_title:
             st.subheader("📝收支總表")
         with col_dl:
-            # 準備 Excel 檔案
             dl_output = io.BytesIO()
             today_str = datetime.now().strftime('%Y%m%d')
-            export_trans_df = st.session_state.trans_df.copy()
-            if '日期' in export_trans_df.columns:
-                export_trans_df['日期'] = pd.to_datetime(export_trans_df['日期'], errors='coerce')
-                export_trans_df = export_trans_df.sort_values(by='日期', ascending=False)           
+            
+            # 準備匯出的純日期且排序好的 Excel 資料
+            export_trans_df = get_sorted_trans_df(st.session_state.trans_df)
+            export_members_df = get_clean_members_df(st.session_state.members_df)
+            
             with pd.ExcelWriter(dl_output, engine='openpyxl') as writer:
-                # 在分頁名稱後加上日期
-                st.session_state.trans_df.to_excel(writer, sheet_name=f'收支明細_{today_str}', index=False)
-                st.session_state.members_df.to_excel(writer, sheet_name=f'季繳名單_{today_str}', index=False)
+                export_trans_df.to_excel(writer, sheet_name=f'收支明細_{today_str}', index=False)
+                export_members_df.to_excel(writer, sheet_name=f'季繳名單_{today_str}', index=False)
             
             st.download_button(
                 label="📥下載Excel",
@@ -264,21 +281,14 @@ with tab2:
                 key="dl_tab2"
             )
 
-        # 初始化動態 Key (用於取消刪除時強制刷新前端畫面)
         if "trans_key_version" not in st.session_state:
             st.session_state.trans_key_version = 0
         
-        if "日期" in st.session_state.trans_df.columns:
-            display_df = st.session_state.trans_df.sort_values(by="日期", ascending=False).copy()
-        else:
-            display_df = st.session_state.trans_df.copy()
-            st.warning(f"⚠️找不到『日期』欄位，目前的欄位有：{list(display_df.columns)}。請確認 Excel 的標題列位置。")
+        display_df = get_sorted_trans_df(st.session_state.trans_df)
 
-        # 處理空值避免顯示 None
         for col in display_df.select_dtypes(include=['object']).columns:
             display_df[col] = display_df[col].fillna("")
             
-        # 插入刪除打勾欄位
         display_df.insert(0, "🗑️刪除", False)
         del_col = display_df.columns[0]
             
@@ -299,14 +309,13 @@ with tab2:
             }
         )   
         
-        # 處理打勾刪除與雙擊修改邏輯
         if edited_trans[del_col].any():
             st.warning("⚠️發現已勾選的項目，確定要刪除嗎？")
             col_btn1, col_btn2 = st.columns(2)
             with col_btn1:
                 if st.button("❎確認刪除", key="confirm_del_trans", use_container_width=True):
-                    # 完全不使用字串，直接過濾掉打勾的資料，並用 .iloc[:, 1:] 排除打勾欄
-                    st.session_state.trans_df = edited_trans[~edited_trans[del_col]].iloc[:, 1:].reset_index(drop=True)
+                    filtered_df = edited_trans[~edited_trans[del_col]].iloc[:, 1:].reset_index(drop=True)
+                    st.session_state.trans_df = get_sorted_trans_df(filtered_df)
                     st.session_state.trans_key_version += 1 
                     st.rerun()
 
@@ -315,12 +324,12 @@ with tab2:
                     st.session_state.trans_key_version += 1
                     st.rerun()
         else:
-            # 用 .iloc[:, 1:] 比對，不依賴字串名稱
             orig_check = display_df.iloc[:, 1:]
             edit_check = edited_trans.iloc[:, 1:]
             if not edit_check.equals(orig_check):
-                st.session_state.trans_df = edit_check
+                st.session_state.trans_df = get_sorted_trans_df(edit_check)
                 st.rerun()
+
 
 # ------------------------------------------
 # 分頁 3：🏸季繳追蹤
@@ -366,23 +375,19 @@ with tab3:
 
     # 右側：季繳追蹤清單與編輯
     with col_right:
-       
-        # 將標題列切分為左右，讓按鈕靠右對齊
         col_title, col_dl = st.columns([7, 3])
         with col_title:
             st.subheader("📋季繳追蹤清單")
         with col_dl:
-            # 準備 Excel 檔案
             dl_output = io.BytesIO()
             today_str = datetime.now().strftime('%Y%m%d')
-            export_trans_df = st.session_state.trans_df.copy()
-            if '日期' in export_trans_df.columns:
-                export_trans_df['日期'] = pd.to_datetime(export_trans_df['日期'], errors='coerce')
-                export_trans_df = export_trans_df.sort_values(by='日期', ascending=False)
+            
+            export_trans_df = get_sorted_trans_df(st.session_state.trans_df)
+            export_members_df = get_clean_members_df(st.session_state.members_df)
+            
             with pd.ExcelWriter(dl_output, engine='openpyxl') as writer:
-                # 在分頁名稱後加上日期，例如：收支明細_20261007
-                st.session_state.trans_df.to_excel(writer, sheet_name=f'收支明細_{today_str}', index=False)
-                st.session_state.members_df.to_excel(writer, sheet_name=f'季繳名單_{today_str}', index=False)
+                export_trans_df.to_excel(writer, sheet_name=f'收支明細_{today_str}', index=False)
+                export_members_df.to_excel(writer, sheet_name=f'季繳名單_{today_str}', index=False)
                 
             st.download_button(
                 label="📥下載Excel",
@@ -393,7 +398,6 @@ with tab3:
                 key="dl_tab3"
             )
 
-        # 初始化動態 Key (用於取消刪除時強制刷新前端畫面)
         if "members_key_version" not in st.session_state:
             st.session_state.members_key_version = 0
         
@@ -405,16 +409,8 @@ with tab3:
         display_df = st.session_state.members_df.copy()
         display_df['狀態提醒'] = display_df['剩餘次數'].apply(update_status)
           
-        # 插入刪除打勾欄位
         display_df.insert(0, "🗑️刪除", False)
-        
-        # ✨ 動態抓取第一欄名稱，完全避開 Emoji 字串辨識問題
         del_col_mem = display_df.columns[0]
-
-        def highlight_zero(row):
-            if row['剩餘次數'] <= 0:
-                return ['text-decoration: line-through; color: #888888;'] * len(row)
-            return [''] * len(row)
 
         edited_members = st.data_editor(
             display_df,
@@ -430,13 +426,11 @@ with tab3:
             }
         )
 
-        # 處理打勾刪除與雙擊修改邏輯
         if edited_members[del_col_mem].any():
             st.warning("⚠️發現已勾選的項目，確定要刪除嗎？")
             col_btn1, col_btn2 = st.columns(2)
             with col_btn1:
                 if st.button("❎確認刪除", key="confirm_del_mem", use_container_width=True):
-                    # 篩選掉打勾的列，並只保留需要的四個欄位
                     st.session_state.members_df = edited_members[~edited_members[del_col_mem]][['姓名', '繳費日期', '季繳開始日期', '剩餘次數']].reset_index(drop=True)
                     st.session_state.members_key_version += 1
                     st.rerun()
@@ -445,7 +439,6 @@ with tab3:
                     st.session_state.members_key_version += 1
                     st.rerun()
         else:
-            # 直接選取特定欄位比對，不依賴字串名稱來 drop
             orig_check = display_df[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']]
             edit_check = edited_members[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']]
             if not edit_check.equals(orig_check):
@@ -458,14 +451,14 @@ with tab3:
 # ------------------------------------------
 with tab4:
     st.subheader("ℹ️後台資訊")
-    st.markdown("💡提示：如需修改以下內容，請通知團主")
-    st.write("") # 增加一點間距
+    # 純文字提示 (已去除藍色底框)
+    st.markdown("💡 **提示：如需修改以下內容，請通知團主**")
+    st.write("") 
     
     # --- 第一列 (2個欄位) ---
     row1_col1, row1_col2 = st.columns(2)
     
     with row1_col1:
-        # 💰收費標準 (淺藍色背景)
         st.markdown("""
         <div style="background-color: #e3f2fd; padding: 20px; border-radius: 12px; min-height: 190px; color: #1f1f1f;">
             <h3 style="margin-top: 0; color: #0d47a1;">💰收費標準</h3>
@@ -478,7 +471,6 @@ with tab4:
         """, unsafe_allow_html=True)
 
     with row1_col2:
-        # 🎉球團福利 (淺橘黃色背景)
         st.markdown("""
         <div style="background-color: #fff3e0; padding: 20px; border-radius: 12px; min-height: 190px; color: #1f1f1f;">
             <h3 style="margin-top: 0; color: #e65100;">🎉球團福利</h3>
@@ -488,13 +480,12 @@ with tab4:
         </div>
         """, unsafe_allow_html=True)
         
-    st.write("") # 第一列與第二列之間的間距
+    st.write("") 
     
     # --- 第二列 (2個欄位) ---
     row2_col1, row2_col2 = st.columns(2)
     
     with row2_col1:
-        # 🧑‍💼預估設定 (淺綠色背景)
         st.markdown("""
         <div style="background-color: #e8f5e9; padding: 20px; border-radius: 12px; min-height: 190px; color: #1f1f1f;">
             <h3 style="margin-top: 0; color: #1b5e20;">🧑‍💼預估設定</h3>
@@ -507,7 +498,6 @@ with tab4:
         """, unsafe_allow_html=True)
 
     with row2_col2:
-        # 📈統計結果 (淺紫色背景)
         st.markdown("""
         <div style="background-color: #f3e5f5; padding: 20px; border-radius: 12px; min-height: 190px; color: #1f1f1f;">
             <h3 style="margin-top: 0; color: #4a148c;">📈統計結果【2026.4~2026.9】</h3>
