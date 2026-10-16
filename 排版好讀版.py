@@ -88,6 +88,9 @@ with col_save:
     if st.button("💾確認更新並存檔", type="primary", use_container_width=True):
         with st.spinner("⌛正在上傳資料中，請稍候..."):
             try:
+                # 先取得當前時間字串
+                now_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                
                 # 1. 產生最新的 Excel 檔案內容到記憶體
                 output = io.BytesIO()
                 with pd.ExcelWriter(output, engine='openpyxl') as writer:
