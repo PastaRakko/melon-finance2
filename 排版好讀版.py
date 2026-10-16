@@ -137,8 +137,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["💰收支概況", "📊記帳與管理", "�
 # 分頁 1：💰收支概況
 # ------------------------------------------
 with tab1:
-    # ✨ 將整個分頁切分為左右兩大區塊：左邊文字數據(佔1份寬度)，右邊圖表(佔2份寬度)
-    col_text, col_charts = st.columns([1, 2])
+    col_text, col_line, col_charts = st.columns([1, 0.1, 2])
     
     # --- 先進行所有財務數據的幕後計算 ---
     if '類別' in current_trans.columns and '金額' in current_trans.columns:
