@@ -137,8 +137,10 @@ tab1, tab2, tab3, tab4 = st.tabs(["💰收支概況", "📊記帳與管理", "�
 # 分頁 1：💰收支概況
 # ------------------------------------------
 with tab1:
-    st.subheader("💰總財務概況")
+    # ✨ 將整個分頁切分為左右兩大區塊：左邊文字數據(佔1份寬度)，右邊圖表(佔2份寬度)
+    col_text, col_charts = st.columns([1, 2])
     
+    # --- 先進行所有財務數據的幕後計算 ---
     if '類別' in current_trans.columns and '金額' in current_trans.columns:
         total_income = current_trans[current_trans['類別'] == '收入']['金額'].sum()
         total_expense = current_trans[current_trans['類別'] == '支出']['金額'].sum()
@@ -160,47 +162,45 @@ with tab1:
         # 可挪用金額 = 總結餘 - 季繳預留 - 場地預留
         usable_balance = net_balance - quarterly_reserve - venue_reserve
 
-        # ✨ 改為完美的左右排版：左邊大框，右邊數據
-        col_left, col_right = st.columns([1, 1])
+    # --- 左半邊：顯示文字與財務數據 ---
+    with col_text:
+        st.subheader("💰總財務概況")
         
-        with col_left:
-            # 加上一點空白讓綠框與右邊的數字高度對齊
-            st.write("") 
-            st.success(f"### 🛡️可挪用金額: **${usable_balance:,.0f}**")
+        # 改為上下排列，讓資訊在左側邊欄位看起來更緊湊整齊
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            st.metric("💵總結餘金額", f"${net_balance:,.0f}")
+        with col_m2:
+            st.metric("💳季繳預留金", f"${quarterly_reserve:,.0f}")
             
-        with col_right:
-            # 右側再切成兩半，整齊放下總結餘跟季繳預留金
-            col_inner1, col_inner2 = st.columns(2)
-            with col_inner1:
-                st.metric("💵總結餘金額", f"${net_balance:,.0f}")
-            with col_inner2:
-                st.metric("💳季繳預留金", f"${quarterly_reserve:,.0f}")
-            
-    st.divider()
-    
-    st.subheader("📊收支圖表分析")
-    
-    if '類別' in current_trans.columns and '金額' in current_trans.columns and '日期' in current_trans.columns:
-        col1, col2 = st.columns(2)
-        with col1:
-            summary = current_trans.groupby('類別')['金額'].sum().reset_index()
-            fig_pie = px.pie(summary, values='金額', names='類別', title="總收入 vs 總支出",
-                             color='類別', color_discrete_map={'收入':'#28a745', '支出':'#dc3545'})
-            st.plotly_chart(fig_pie, use_container_width=True)
-            
-        with col2:
-            plot_df = current_trans.dropna(subset=['日期']).copy()
-            plot_df['月份'] = plot_df['日期'].dt.strftime('%Y-%m')
+        st.write("") # 稍微留白
+        st.success(f"### 🛡️可挪用金額:\n### **${usable_balance:,.0f}**")
 
-            monthly_summary = plot_df.groupby(['月份', '類別'])['金額'].sum().reset_index()
-            
-            fig_bar = px.bar(monthly_summary, x='月份', y='金額', color='類別', barmode='group', title="每月收支變化",
-                             color_discrete_map={'收入':'#28a745', '支出':'#dc3545'})
-            # 確保 X 軸顯示為純文字類別 (解決時間格式跑版)
-            fig_bar.update_layout(xaxis_type='category')
-            st.plotly_chart(fig_bar, use_container_width=True)
+    # --- 右半邊：顯示圖表 ---
+    with col_charts:
+        st.subheader("📊收支圖表分析")
+        
+        if '類別' in current_trans.columns and '金額' in current_trans.columns and '日期' in current_trans.columns:
+            # 在右側的區塊中，再切出兩個欄位並排顯示圖表
+            col_chart1, col_chart2 = st.columns(2)
+            with col_chart1:
+                summary = current_trans.groupby('類別')['金額'].sum().reset_index()
+                fig_pie = px.pie(summary, values='金額', names='類別', title="總收入 vs 總支出",
+                                 color='類別', color_discrete_map={'收入':'#28a745', '支出':'#dc3545'})
+                st.plotly_chart(fig_pie, use_container_width=True)
+                
+            with col_chart2:
+                plot_df = current_trans.dropna(subset=['日期']).copy()
+                plot_df['月份'] = plot_df['日期'].dt.strftime('%Y-%m')
 
-
+                monthly_summary = plot_df.groupby(['月份', '類別'])['金額'].sum().reset_index()
+                
+                fig_bar = px.bar(monthly_summary, x='月份', y='金額', color='類別', barmode='group', title="每月收支變化",
+                                 color_discrete_map={'收入':'#28a745', '支出':'#dc3545'})
+                # 確保 X 軸顯示為純文字類別 (解決時間格式跑版)
+                fig_bar.update_layout(xaxis_type='category')
+                st.plotly_chart(fig_bar, use_container_width=True)
+                
 # ------------------------------------------
 # 分頁 2：📊記帳與管理
 # ------------------------------------------
