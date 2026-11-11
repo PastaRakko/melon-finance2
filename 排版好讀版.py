@@ -424,7 +424,7 @@ with tab3:
         
         def update_status(times):
             if times <= 0: return "⛔已結束"
-            elif times <= 2: return "⚠️剩餘2次，可提醒繳費"
+            elif times <= 2: return "⚠️剩餘2次以下，可提醒繳費"
             else: return "🟢進行中"
 
         display_df = st.session_state.members_df.copy()
