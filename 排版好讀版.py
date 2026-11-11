@@ -54,14 +54,19 @@ if 'members_df' not in st.session_state:
     
     # 確保日期格式正確
     df_mem['季繳開始日期'] = pd.to_datetime(df_mem['季繳開始日期'], errors='coerce')
-    today = pd.to_datetime(datetime.today().date())
+    today = pd.to_datetime(datetime.now(TW_TZ).date())
     days_diff = (today - df_mem['季繳開始日期']).dt.days
     
+    # 計算剩餘次數：上限以 10 計
+    calc_times = 10 - np.ceil(days_diff / 7)
     df_mem['剩餘次數'] = np.where(
         df_mem['季繳開始日期'].notna(),
-        10 - np.ceil(days_diff / 7),
-        0 # 如果沒填開始日期，預設顯示為 0
+        np.clip(calc_times, 0, 10),
+        0
     ).astype(int)
+    
+    # 自動排除已結束 (剩餘次數 <= 0) 的項目
+    df_mem = df_mem[df_mem['剩餘次數'] > 0].reset_index(drop=True)
     
     st.session_state.members_df = df_mem[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']]
 
@@ -92,7 +97,6 @@ if '經手人' in current_trans.columns:
 # ==========================================
 # 快捷按鈕存檔與重新讀取 (標題旁邊)
 # ==========================================
-
 col_title, col_save, col_reload = st.columns([6, 2, 2], vertical_alignment="bottom")
 with col_title:
     st.title("🍈哈蜜瓜收支與季繳管理表")
@@ -229,7 +233,7 @@ with tab2:
     with col_left:
         st.subheader("✍️新增收支紀錄")
         with st.form("add_transaction_form", clear_on_submit=True):
-            t_date = st.date_input("📅日期", datetime.today())
+            t_date = st.date_input("📅日期", datetime.now(TW_TZ).date())
             t_type = st.selectbox("類別", ["收入", "支出"])
             t_item = st.selectbox("項目", item_options)
             t_amount = st.number_input("金額 ($)", min_value=0, step=1)
@@ -352,8 +356,8 @@ with tab3:
         st.subheader("➕新增季繳人員")
         with st.form("add_member_form"):
             new_name = st.text_input("👤姓名", placeholder="必填")
-            new_date = st.date_input("📅繳費日期", datetime.today())
-            new_start_date = st.date_input("📅季繳開始日期", datetime.today(), help="⚠️僅能選擇禮拜二")
+            new_date = st.date_input("📅繳費日期", datetime.now(TW_TZ).date())
+            new_start_date = st.date_input("📅季繳開始日期", datetime.now(TW_TZ).date(), help="⚠️僅能選擇禮拜二")
                 
             submit_new_member = st.form_submit_button("➕確認新增人員", use_container_width=True)
             
@@ -365,23 +369,30 @@ with tab3:
                     wrong_day = weekdays_zh[new_start_date.weekday()]
                     st.error(f"⚠️【日期錯誤】「季繳開始日期」必須為星期二！您選擇的 {new_start_date.strftime('%Y-%m-%d')} 是星期{wrong_day}。")
                 else:
-                    today_dt = pd.to_datetime(datetime.today().date())
+                    today_dt = pd.to_datetime(datetime.now(TW_TZ).date())
                     start_dt = pd.to_datetime(new_start_date)
                     days_diff_new = (today_dt - start_dt).days
-                    calculated_times = int(10 - np.ceil(days_diff_new / 7))
                     
-                    new_member_data = pd.DataFrame([{
-                        "姓名": new_name,
-                        "繳費日期": pd.to_datetime(new_date),
-                        "季繳開始日期": start_dt,
-                        "剩餘次數": calculated_times
-                    }])
-                    st.session_state.members_df = pd.concat(
-                        [st.session_state.members_df, new_member_data], 
-                        ignore_index=True
-                    )
-                    st.success(f"✅已成功新增球友：{new_name} (開始日: {new_start_date}, 系統自動計算剩餘 {calculated_times} 次)")
-                    st.rerun() 
+                    # 計算剩餘次數，上限為 10
+                    raw_times = int(10 - np.ceil(days_diff_new / 7))
+                    calculated_times = min(raw_times, 10)
+                    
+                    # 若剩餘次數 <= 0 則不納入追蹤名單
+                    if calculated_times <= 0:
+                        st.warning(f"⚠️ 計算剩餘次數為 {calculated_times} 次（已結束），未加入追蹤名單。")
+                    else:
+                        new_member_data = pd.DataFrame([{
+                            "姓名": new_name,
+                            "繳費日期": pd.to_datetime(new_date),
+                            "季繳開始日期": start_dt,
+                            "剩餘次數": calculated_times
+                        }])
+                        st.session_state.members_df = pd.concat(
+                            [st.session_state.members_df, new_member_data], 
+                            ignore_index=True
+                        )
+                        st.success(f"✅已成功新增球友：{new_name} (開始日: {new_start_date}, 系統自動計算剩餘 {calculated_times} 次)")
+                        st.rerun() 
 
     # 右側：季繳追蹤清單與編輯
     with col_right:
@@ -450,7 +461,9 @@ with tab3:
             col_btn1, col_btn2 = st.columns(2)
             with col_btn1:
                 if st.button("❎確認刪除", key="confirm_del_mem", use_container_width=True):
-                    st.session_state.members_df = edited_members[~edited_members[del_col_mem]][['姓名', '繳費日期', '季繳開始日期', '剩餘次數']].reset_index(drop=True)
+                    filtered_mem = edited_members[~edited_members[del_col_mem]][['姓名', '繳費日期', '季繳開始日期', '剩餘次數']].reset_index(drop=True)
+                    # 確保刪除後剩餘清單亦無 <= 0 的項目
+                    st.session_state.members_df = filtered_mem[filtered_mem['剩餘次數'] > 0].reset_index(drop=True)
                     st.session_state.members_key_version += 1
                     st.rerun()
             with col_btn2:
@@ -461,7 +474,9 @@ with tab3:
             orig_check = display_df[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']]
             edit_check = edited_members[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']]
             if not edit_check.equals(orig_check):
-                st.session_state.members_df = edit_check
+                # 編輯表格時，若將某人次數改為 <= 0，自動將其自追蹤名單中移除
+                cleaned_edit = edit_check[edit_check['剩餘次數'] > 0].reset_index(drop=True)
+                st.session_state.members_df = cleaned_edit
                 st.rerun()
 
 
