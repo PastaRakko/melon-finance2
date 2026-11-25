@@ -174,10 +174,9 @@ with tab1:
         # 場地預留金 (僅幕後扣除)
         if '項目' in current_trans.columns:
             venue_expenses = current_trans[(current_trans['類別'] == '支出') & (current_trans['項目'] == '場地費')]['金額']
-            weekly_venue_fee = venue_expenses.mode()[0] if not venue_expenses.empty else 760
+            weekly_venue_fee = venue_expenses.mode()[0] if not venue_expenses.empty else 1520
         else:
-            weekly_venue_fee = 380 * 2
-        venue_reserve = weekly_venue_fee * 2 
+            weekly_venue_fee = 380 * 4
 
         # 季繳預留金
         total_remaining = st.session_state.members_df['剩餘次數'].sum()
