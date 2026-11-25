@@ -172,7 +172,7 @@ with tab1:
         net_balance = total_income - total_expense
 
         # 場地預留金 (僅幕後扣除)
-    if '項目' in current_trans.columns:
+        if '項目' in current_trans.columns:
             venue_expenses = current_trans[(current_trans['類別'] == '支出') & (current_trans['項目'] == '場地費')]['金額']
             venue_reserve = venue_expenses.mode()[0] if not venue_expenses.empty else (380 * 4)
         else:
