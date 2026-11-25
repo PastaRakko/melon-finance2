@@ -23,12 +23,14 @@ def load_excel():
    
     return df_trans, df_members
 
-# 輔助函式：取得依日期排序好的收支明細表 (由新到舊，且格式化為純日期 YYYY-MM-DD)
+# 輔助函式：取得依日期排序好的收支明細表 (使用 mergesort 穩定排序，確保同日期順序不亂跳)
 def get_sorted_trans_df(df):
     temp_df = df.copy()
     if '日期' in temp_df.columns:
         temp_df['日期'] = pd.to_datetime(temp_df['日期'], errors='coerce')
-        temp_df = temp_df.sort_values(by='日期', ascending=False, na_position='last').reset_index(drop=True)
+        temp_df = temp_df.sort_values(
+            by='日期', ascending=False, na_position='last', kind='mergesort'
+        ).reset_index(drop=True)
         temp_df['日期'] = temp_df['日期'].dt.strftime('%Y-%m-%d')
     return temp_df
 
@@ -255,6 +257,8 @@ with tab2:
                     }])
                     updated_trans = pd.concat([st.session_state.trans_df, new_record], ignore_index=True)
                     st.session_state.trans_df = get_sorted_trans_df(updated_trans)
+                    if "trans_key_version" in st.session_state:
+                        st.session_state.trans_key_version += 1
                     st.success(f"✅已成功記帳：{t_type} - {t_item} ${t_amount}")
                     st.rerun()
 
@@ -287,7 +291,7 @@ with tab2:
         if "trans_key_version" not in st.session_state:
             st.session_state.trans_key_version = 0
         
-        # 1. 取得排序後的資料
+        # 1. 取得穩定排序後的資料
         display_df = get_sorted_trans_df(st.session_state.trans_df)
 
         # 2. 強制把「日期」轉為 dt.date 物件，防範 data_editor 報錯
@@ -338,10 +342,12 @@ with tab2:
                     st.session_state.trans_key_version += 1
                     st.rerun()
         else:
-            orig_check = display_df.iloc[:, 1:]
-            edit_check = edited_trans.iloc[:, 1:]
+            orig_check = display_df.iloc[:, 1:].reset_index(drop=True)
+            edit_check = edited_trans.iloc[:, 1:].reset_index(drop=True)
             if not edit_check.equals(orig_check):
                 st.session_state.trans_df = get_sorted_trans_df(edit_check)
+                # 遞增 key 版本以清空 data_editor 殘留的編輯差異快取，避免影響同日其他項目
+                st.session_state.trans_key_version += 1
                 st.rerun()
 
 
@@ -391,6 +397,8 @@ with tab3:
                             [st.session_state.members_df, new_member_data], 
                             ignore_index=True
                         )
+                        if "members_key_version" in st.session_state:
+                            st.session_state.members_key_version += 1
                         st.success(f"✅已成功新增球友：{new_name} (開始日: {new_start_date}, 系統自動計算剩餘 {calculated_times} 次)")
                         st.rerun() 
 
@@ -424,7 +432,7 @@ with tab3:
         
         def update_status(times):
             if times <= 0: return "⛔已結束"
-            elif times <= 2: return "⚠️剩餘2次以下，可提醒繳費"
+            elif times <= 2: return "⚠️剩餘2次，可提醒繳費"
             else: return "🟢進行中"
 
         display_df = st.session_state.members_df.copy()
@@ -462,7 +470,6 @@ with tab3:
             with col_btn1:
                 if st.button("❎確認刪除", key="confirm_del_mem", use_container_width=True):
                     filtered_mem = edited_members[~edited_members[del_col_mem]][['姓名', '繳費日期', '季繳開始日期', '剩餘次數']].reset_index(drop=True)
-                    # 確保刪除後剩餘清單亦無 <= 0 的項目
                     st.session_state.members_df = filtered_mem[filtered_mem['剩餘次數'] > 0].reset_index(drop=True)
                     st.session_state.members_key_version += 1
                     st.rerun()
@@ -471,12 +478,12 @@ with tab3:
                     st.session_state.members_key_version += 1
                     st.rerun()
         else:
-            orig_check = display_df[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']]
-            edit_check = edited_members[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']]
+            orig_check = display_df[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']].reset_index(drop=True)
+            edit_check = edited_members[['姓名', '繳費日期', '季繳開始日期', '剩餘次數']].reset_index(drop=True)
             if not edit_check.equals(orig_check):
-                # 編輯表格時，若將某人次數改為 <= 0，自動將其自追蹤名單中移除
                 cleaned_edit = edit_check[edit_check['剩餘次數'] > 0].reset_index(drop=True)
                 st.session_state.members_df = cleaned_edit
+                st.session_state.members_key_version += 1
                 st.rerun()
 
 
